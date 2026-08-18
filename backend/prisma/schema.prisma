@@ -1,0 +1,293 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  SAMPLE_SENT
+  QUOTATION_SENT
+  NEGOTIATING
+  WON
+  LOST
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  ORDER_CONFIRMED
+  IN_PRODUCTION
+  QUALITY_CHECK
+  DISPATCHED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id                String        @id @default(cuid())
+  name              String
+  email             String        @unique
+  passwordHash      String
+  role              Role          @default(SALES)
+  refreshTokenHash  String?
+  isActive          Boolean       @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  auditLogs         AuditLog[]
+  assignedInquiries Inquiry[]     @relation("AssignedInquiries")
+  notes             InquiryNote[]
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  subcategories Subcategory[]
+  products      Product[]
+}
+
+model Subcategory {
+  id         String    @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products   Product[]
+
+  @@unique([name, categoryId])
+}
+
+model Product {
+  id                String         @id @default(cuid())
+  title             String
+  slug              String         @unique
+  shortDescription  String
+  description       String
+  categoryId        String
+  category          Category       @relation(fields: [categoryId], references: [id])
+  subcategoryId     String?
+  subcategory       Subcategory?   @relation(fields: [subcategoryId], references: [id])
+  moq               Int            @default(50)
+  availableSizes    String[]
+  availableColors   String[]
+  fabricComposition String
+  features          String[]
+  specifications    Json?
+  isFeatured        Boolean        @default(false)
+  displayOrder      Int            @default(0)
+  status            ProductStatus  @default(PUBLISHED)
+  seoTitle          String?
+  seoDescription    String?
+  seoKeywords       String?
+  images            ProductImage[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Inquiry {
+  id              String        @id @default(cuid())
+  company         String
+  contactName     String
+  email           String
+  phone           String
+  industry        String?
+  quantity        String?
+  budget          String?
+  city            String?
+  state           String?
+  source          String        @default("Website")
+  message         String?
+  status          InquiryStatus @default(NEW)
+  priority        Priority      @default(MEDIUM)
+  assignedToId    String?
+  assignedTo      User?         @relation("AssignedInquiries", fields: [assignedToId], references: [id])
+  nextFollowUp    DateTime?
+  lastContactedAt DateTime?
+  notes           InquiryNote[]
+  quotations      Quotation[]
+  orders          Order[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  inquiryId       String
+  inquiry         Inquiry         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  items           Json            // array of { productId, title, quantity, unitPrice, lineTotal }
+  subtotal        Float
+  gstRate         Float           @default(18.0)
+  gstAmount       Float
+  totalAmount     Float
+  validUntil      DateTime
+  notes           String?
+  status          QuotationStatus @default(DRAFT)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  orderNumber      String      @unique
+  inquiryId        String?
+  inquiry          Inquiry?    @relation(fields: [inquiryId], references: [id])
+  customerName     String
+  company          String
+  email            String
+  phone            String
+  products         Json        // items, sizes, colors, embroidery/printing details
+  totalQuantity    Int
+  totalAmount      Float
+  advancePayment   Float       @default(0)
+  remainingPayment Float
+  status           OrderStatus @default(ORDER_CONFIRMED)
+  deliveryDate     DateTime?
+  dispatchStatus   String?
+  notes            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model Download {
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  company      String
+  downloadedAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  oldStatus String?
+  newStatus String?
+  note      String?
+  timestamp DateTime @default(now())
+}
+
+model InquiryNote {
+  id        String   @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model Gallery {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  title       String
+  category    String   // e.g. Corporate, Healthcare, Hospitality, Education, Industrial, Security
+  industry    String?
+  description String?
+  altText     String?
+  seoAlt      String?
+  isFeatured  Boolean  @default(false)
+  status      String   @default("PUBLISHED")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  designation String
+  company     String
+  category    String   // e.g. Healthcare, Corporate, Education
+  industry    String?
+  rating      Int      @default(5)
+  quote       String
+  clientLogo  String?
+  location    String?
+  region      String?  // e.g. Maharashtra Region
+  isFeatured  Boolean  @default(true)
+  status      String   @default("PUBLISHED")
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FAQ {
+  id           String   @id @default(cuid())
+  question     String
+  answer       String
+  category     String   @default("General")
+  order        Int      @default(0)
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model HomepageSetting {
+  id              String   @id @default("current")
+  companyName     String   @default("Riya Silk")
+  tagline         String?
+  heroTitle       String
+  heroSubtitle    String
+  heroCtaText     String
+  heroCtaLink     String   @default("#contact-section")
+  statsCapacity   String   @default("5,000+")
+  statsTailors    String   @default("150+")
+  statsSqFt       String   @default("100K+")
+  statsClients    String   @default("500+")
+  contactPhone    String   @default("+91 99999 99999")
+  contactEmail    String   @default("info@riyasilk.com")
+  contactAddress  String?
+  officeHours     String   @default("Monday to Saturday, 9:00 AM - 6:00 PM IST")
+  catalogPdfUrl   String   @default("/riyasilk_catalogue.pdf")
+  gstNumber       String?
+  msmeNumber      String?
+  googleMapsEmbed String?  @db.Text
+  socialWhatsapp  String?
+  socialInsta     String?
+  socialFb        String?
+  socialLinkedin  String?
+  socialYoutube   String?
+  updatedAt       DateTime @updatedAt
+}

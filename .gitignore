@@ -1,41 +1,67 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
 .pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
-# testing
-/coverage
+# Build & Output
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+*.tsbuildinfo
+**/*.tsbuildinfo
 
-# next.js
-/.next/
-/out/
+# Environment & Secrets
+.env
+.env.*
+!*.env.example
+!*.env.production.example
+**/.env
+**/.env.*
+!**/*.env.example
+!**/.env.production.example
 
-# production
-/build
+# Production & Uploaded media
+uploads/
+**/uploads/
+tmp/
+**/tmp/
 
-# misc
-.DS_Store
-*.pem
+# Database / SQLite (Local)
+*.db
+*.sqlite
+*.sqlite-journal
 
-# debug
+# Logs & Debugging
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Testing & Coverage
+coverage/
+**/coverage/
+.nyc_output/
 
-# vercel
-.vercel
+# OS & System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# IDE & Editor settings
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
